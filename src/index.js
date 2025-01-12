@@ -10,6 +10,18 @@ dotenv.config({
 })
 
 connectDB()
+app.on("error", (error) =>{
+    console.log("ERROR:", err);
+})
+.then(() =>{
+    app.listen(process.env.PORT || 8000, () => {
+        console.log(`"server is running at port:" ${PORT} `);
+    });
+})
+.catch((error) => {
+    console.log("MONGO db connecction failed !!!", err);
+})
+
 /*const app = express()
 ;( async () => { // we use An IIFE (Immediately Invoked Function Expression) is an idiom in which a JavaScript function runs as soon as it is defined. It is also known as a self-executing anonymous function. The name IIFE is promoted by Ben Alman in his blog. js.
     try{
