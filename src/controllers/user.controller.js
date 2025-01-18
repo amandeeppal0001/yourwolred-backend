@@ -1,6 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/ApiError.js"
-import { user } from "../models/user.modal.js"
+import { User } from "../models/user.model.js"
 import { uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 const registerUser = asyncHandler( async ( req, res) =>
@@ -17,21 +17,32 @@ const registerUser = asyncHandler( async ( req, res) =>
     
     const { fullName, email , username , password } = req.body
     console.log("email:", email);
-
+    // console.log("req.body:", req.body);
     if([fullName,email, username ,password].some((field)=>
     field?.trim() === "")
 ) {
         throw new ApiError(400, "all fields are required")
     }
 
-  const existedUser =  User.findOne({          // jo bhi first user find hooga use return kr dega
+  const existedUser = await  User.findOne({          // jo bhi first user find hooga use return kr dega
         $or: [{ username }, { email }]
     })
     if(existedUser){
         throw new ApiError(409, " user with this email or userName  already exists")
     }
-    const avatarLocalPath = req.files?.avatar[0]?.path
-    req.file?.coverImage[0]?.path;
+    // console.log("req.files:", req.files);
+    const avatarLocalPath = req.files?.avatar[0]?.path;
+    let coverImageLocalPath ;
+    if(req.files &&  Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
+    // const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
+
+
+    // let coverImageLocalPath;
+    // if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+    //     coverImageLocalPath = req.files.coverImage[0].path
+    // }
 
      
     if(!avatarLocalPath){
@@ -40,7 +51,7 @@ const registerUser = asyncHandler( async ( req, res) =>
      const avatar = await uploadOnCloudinary(avatarLocalPath)
      const coverImage = await uploadOnCloudinary(coverImageLocalPath)
      if(!avatar){
-        throw new ApiError(400, "Avatar filed rrequired ")
+        throw new ApiError(400, "Avatar file required ")
      }
 
      const user = await User.create({

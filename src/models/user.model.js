@@ -1,5 +1,11 @@
-import moongoose,{schema} from"mongoose";
-import jwt from "jsonwentoken"
+// import mongoose, {Schema} from "mongoose";
+// import jwt from "jsonwebtoken"
+// import bcrypt from "bcrypt"
+
+
+import mongoose,{Schema} from"mongoose";
+import jwt from "jsonwebtoken"
+import bcrypt from "bcrypt"
 const userSchema = new Schema({
     username: {
         type:String,
@@ -16,11 +22,11 @@ const userSchema = new Schema({
         lowercase:true,
         trim:true,
     },
-    fullname: {
+    fullName: {
         type:String,
         required:true,
         trim:true,
-        index: true,
+        // index: true,
     },
     avatar: {
         type:String, // cloudinary ka url use krenge
@@ -87,5 +93,7 @@ userSchema.methods.generateRefreshToken = function(){
         }
     )
 }
-export const User = mongoose.modal("User", userSchema)
+// export const User = mongoose.modal("User", userSchema)
+
+export const User = mongoose.model("User", userSchema)
 // jwt is a bearer token
