@@ -12,7 +12,7 @@ const userSchema = new Schema({
         required:true,
         unique:true,
         lowercase:true,
-        trim:true,
+        trim:true,// REMOVE the whitesapces
         index: true,// for faster search( when to apply search) ,& don't use it in another case
     },
     email: {
@@ -26,7 +26,7 @@ const userSchema = new Schema({
         type:String,
         required:true,
         trim:true,
-        // index: true,
+        index: true,
     },
     avatar: {
         type:String, // cloudinary ka url use krenge
@@ -75,7 +75,7 @@ userSchema.methods.generateAccessToken = function(){
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
-            expiresin: process.env.ACCESS_TOKEN_EXPIRY
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
         }
     )
 }
@@ -84,12 +84,12 @@ userSchema.methods.generateRefreshToken = function(){
 
     return  jwt.sign(
         {
-            _id:this._id,
+            _id: this._id,
            
         },
         process.env.REFRESH_TOKEN_SECRET,
         {
-            expiresin: process.env.REFRESH_TOKEN_EXPIRY
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
         }
     )
 }

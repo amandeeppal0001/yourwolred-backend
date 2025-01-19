@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { DB_NAME } from '../constants.js'; // DB IS IN ANOTHER CONTINENT
+mongoose.set("debug", true);
 
 const connectDB = async ()=>{
     try{
