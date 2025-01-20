@@ -329,6 +329,8 @@ const updateUserCoverImage = asyncHandler(async(req, res) =>{
     if(!coverImageLocalPath){
         throw new ApiError(400, "cover image file is missing")
     }
+
+    // TODO delete old cover image - assignment 
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
     if(!coverImage.url){
@@ -471,7 +473,6 @@ const getWatchHistory = asyncHandler(async(req,res) =>{
           "Watch history fetched successfully")
         )
 })
-
 
 
 export { 
