@@ -4,9 +4,11 @@ import { User } from "../models/user.model.js"
 import { uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { json } from "express";
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import { upload } from "../middlewares/multer.middleware.js";
 
-
+//ToDo user controller- this had been already teached by sir ,video controller, tweet controller, hospital management controller, upload videos, add video to watchlist & history of user , if user hits subscribe than how add subcriber to channel(& which field is required like user_id)
 
 const generateAccessAndRefereshTokens = async(userId) =>{
     try{
@@ -179,7 +181,9 @@ const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: { refreshToken: undefined },
+            $unset: { 
+                 refreshToken: 1   // this removes the field from document
+            },
         },
         {
             new: true, // Return the updated document
@@ -204,15 +208,16 @@ const refreshAccessToken = asyncHandler(async(req, res) => {
 const incomingRefreshToken = req.cookies.
 refreshToken || req.body.refreshToken
 
-if(!incomingRrfreshToken){
+if(!incomingRefreshToken){
     throw new ApiError(401, "unauthorized request")
 }
-
 try {
     const decodedToken = jwt.verify(
-        incomingRefreshToken ,
+        incomingRefreshToken,
         process.env.REFRESH_TOKEN_SECRET
     )
+
+
     const user = await User.findById(decodedToken?._id)
     if(!user){
         throw new ApiError(401, "Invalid refresh token")
@@ -245,18 +250,16 @@ try {
     )
 }
 })
+const changeCurrentPassword = asyncHandler(async(req, res) => {
+    const {oldPassword, newPassword} = req.body
 
+    
 
-const changeCurrentPassword = asyncHandler(async(req, res) =>{
-    const {oldPassword, newPassword , confPassword} = req.body
-// if(!(newPassword === confPassword)){   // to verify new password with  confirm password
-//     throw new ApiError(400, "confirm Password is not correct")
-// }
     const user = await User.findById(req.user?._id)
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
 
-    if(!isPasswordCorrect){
-        throw new ApiError(400, "Invalid old Password")
+    if (!isPasswordCorrect) {
+        throw new ApiError(400, "Invalid old password")
     }
 
     user.password = newPassword
@@ -265,8 +268,29 @@ const changeCurrentPassword = asyncHandler(async(req, res) =>{
     return res
     .status(200)
     .json(new ApiResponse(200, {}, "Password changed successfully"))
-
 })
+
+
+// const changeCurrentPassword = asyncHandler(async(req, res) =>{
+//     const {oldPassword, newPassword , confPassword} = req.body
+// // if(!(newPassword === confPassword)){   // to verify new password with  confirm password
+// //     throw new ApiError(400, "confirm Password is not correct")
+// // }
+//     const user = await User.findById(req.user?._id)
+//     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+//     if(!isPasswordCorrect){
+//         throw new ApiError(400, "Invalid old Password")
+//     }
+
+//     user.password = newPassword
+//     await user.save({validateBeforeSave: false})
+
+//     return res
+//     .status(200)
+//     .json(new ApiResponse(200, {}, "Password changed successfully"))
+
+// })
 
 
 const getCurrentUser = asyncHandler(async(req,res)=>{
@@ -287,7 +311,7 @@ const updateAccountDetails = asyncHandler(async(res, req) =>{
         req.user?._id,
         {
         $set: {
-            fullname,
+            fullName,
             email: email
         }
         },
@@ -351,66 +375,127 @@ const updateUserCoverImage = asyncHandler(async(req, res) =>{
       .json(new ApiResponse(200, user, "cover image is updated successfully"))
 })
 
+
+
+
 const getUserChannelProfile = asyncHandler(async(req, res) => {
     const {username} = req.params
 
     if(!username?.trim()) {
         throw new ApiError(400, "username is missing")
     }
-
     const channel = await User.aggregate([
-    {
-        $match: {
-            username: username?.toLowerCase() 
-        }
-    },
+        {
+            $match: {
+                username: username.toLowerCase(),
+            },
+        },
         {
             $lookup: {
-                from: "subscription",
-                localfield: "_id",
-                foreignField: "channel",
-                as: "subscribers"
-            }
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo",
+            },
         },
-    {
-        $lookup:{
-            from: "subscription",
-            localfield: "_id",
-            foreignField: "subscriber",
-            as: "subscribedTo"
-        }
-    },
-    {
-        $addfields: {
-            subscribresCount: {
-                $size: "$subscribers"
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers", // Renamed correctly
             },
-            channelsSubscribedToCount: {
-                $size: "$subscribedTo"
+        },
+        {
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers",
+                },
+                channelsSubscribedToCount: {
+                    $size: "$subscribedTo",
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+                        then: true,
+                        else: false,
+                    },
+                },
             },
-            isSubscribed:
-            {
-                $cond: {
-                    if: {$in: [req.user?._id,"$subscribers.subscriber"]},
-                    then: true,
-                    else: false
-                }
-            }
-        }
-    },
-    {
-        $project: {
-            fullName: 1,
-            username: 1,
-            subscribersCount: 1,
-            channelsSubscribedToCount: 1,
-            isSubscribed: 1,
-            avatar: 1,
-            coverImage: 1,
-            email: 1
-        }
-    }
-    ])
+        },
+        {
+            $project: {
+                fullName: 1,
+                username: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1,
+            },
+        },
+    ]);
+    
+    // const channel = await User.aggregate([
+    // {
+    //     $match: {
+    //         username: username?.toLowerCase() 
+    //     }
+    // },
+    //     {
+    //         $lookup: {
+    //             from: "subscriptions",
+    //             localField: "_id",
+    //             foreignField: "subscriber",
+    //             as: "subscribedTo"
+    //         }
+    //         // $lookup: {
+    //         //     from: "subscription",
+    //         //     localfield: "_id",
+    //         //     foreignField: "channel",
+    //         //     as: "subscribers"
+    //         // }
+    //     },
+    // {
+    //     $lookup:{
+    //         from: "subscriptions",
+    //         localField: "_id",
+    //         foreignField: "subscriber",
+    //         as: "subscribedTo"
+    //     }
+    // },
+    // {
+    //     $addFields: {
+    //         subscribresCount: {
+    //             $size: "$subscribers"
+    //         },
+    //         channelsSubscribedToCount: {
+    //             $size: "$subscribedTo"
+    //         },
+    //         isSubscribed:
+    //         {
+    //             $cond: {
+    //                 if: {$in: [req.user?._id,"$subscribers.subscriber"]},
+    //                 then: true,
+    //                 else: false
+    //             }
+    //         }
+    //     }
+    // },
+    // {
+    //     $project: {
+    //         fullName: 1,
+    //         username: 1,
+    //         subscribersCount: 1,
+    //         channelsSubscribedToCount: 1,
+    //         isSubscribed: 1,
+    //         avatar: 1,
+    //         coverImage: 1,
+    //         email: 1
+    //     }
+    // }
+    // ])
 
     if(!channel?.length) {
         throw new ApiError(404, "channel does not exists")
@@ -422,12 +507,14 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
 })
 
 const getWatchHistory = asyncHandler(async(req,res) =>{
+    
   const user = await User.aggregate([
     {
         $match: {
             _id: new mongoose.Types.ObjectId(req.user._id)
-        }
+                }
     }, 
+
     {
         $lookup:{
             from: "videos",
@@ -438,8 +525,8 @@ const getWatchHistory = asyncHandler(async(req,res) =>{
                     {
                         $lookup:{   // lookup will always return array , and our required answer will we first element of array
                             from:"users",  // users ke inside jayega
-                            localfield: "owner", //owner inside videos table ko users ki id se connect kr dega  
-                            foreignfield: "_id", // users ki id layega
+                            localField: "owner", //owner inside videos table ko users ki id se connect kr dega  
+                            foreignField: "_id", // users ki id layega
                             as: "owner", // this will stores in owner field
                             pipeline: [           // also try to put this pipeline outside than see (conclusion: It will work)
                                 {
@@ -473,7 +560,51 @@ const getWatchHistory = asyncHandler(async(req,res) =>{
           "Watch history fetched successfully")
         )
 })
+ 
 
+const addVideo = asyncHandler(async(req, res)=> {
+    const videoLocalPath = req.user?.path
+    if(!videoLocalPath){
+        throw new ApiError(400,"video  is missing")
+    }
+
+    const video = await uploadOnCloudinary(videoLocalPath)
+    if(!video.url){
+        throw new AppiError(400, "ERROR: video isn't uploaded on cloudinary")
+    }
+    const user = await findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                videoFile: video.url
+            }
+        },
+       {new: true}
+    ).select("-password")
+    return res
+    .status(200)
+    .json(new ApiResponse(200, user, "video uploaded successfully"))
+
+})
+
+const tweeter = asyncHandler(async(req,res)=>{
+    const tweet = await req.body
+    if(!tweet){
+        throw new ApiError(400, "tweet is not given")
+    }
+    const dbTweet = User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                tweet:dbTweet
+            }
+        },
+        {new:true}
+    ).select("-password")
+    return res
+    .status(200)
+    .json(new ApiResponse(200,dbTweet,"your tweet ha been tweeted successfuly"))
+}/*,{timestamps:true}*/)
 
 export { 
     registerUser,
@@ -486,6 +617,8 @@ export {
  updateUserAvatar,
  updateUserCoverImage,
  getUserChannelProfile,
- getWatchHistory
+ getWatchHistory,
+ addVideo,
+ tweeter
 
  }
