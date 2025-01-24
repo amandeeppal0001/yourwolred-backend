@@ -12,19 +12,21 @@ import { upload } from "../middlewares/multer.middleware.js";
 
 const generateAccessAndRefereshTokens = async(userId) =>{
     try{
-        const user = await User.findById(userId)
-        const accessToken = user.generateAccessToken()
+        const user = await User.findById(userId)    
+        const accessToken = user.generateAccessToken() // see function in user.model
         const refreshToken = user.generateRefreshToken()
-        user.refreshToken = refreshToken
-        await user.save({ validateBeforeSave: false })
-     return {accessToken, refreshToken}
+        user.refreshToken = refreshToken   // save refresh token on the server but not save access token on server
+        await user.save({ validateBeforeSave: false })   // save on server without any validation or any field which is required but not send due to this it will save any how
+     return {accessToken, refreshToken}  // retrunr tokens to client with containing the proper document from server
     }
+
     catch(error) {
         throw new ApiError(500, "something went wrong while generating access token & refresh token") 
     }
 }
-const registerUser = asyncHandler( async ( req, res) =>
-{
+const registerUser = asyncHandler( async ( req, res) => // asyncHandler is used to avoid repititive uses of try-catch blocks which are prones to more human errors & time consuming & make code readiability worse
+{                                                       // asyncHandler just catch error and send it to express error handling middleware or to next(error)
+   //ALGORITHM FOR HOW YOU WILL PROCEED STEP BY STEP 
     //get user details from frontend
     //validation - not empty check email
     //check if user already exists: username, email
@@ -73,7 +75,7 @@ const registerUser = asyncHandler( async ( req, res) =>
         throw new ApiError(400, "Avatar file required ")
      }
 
-     const user = await User.create({
+     const user = await User.create({  // it will create a new User document in mongooDB server in user constant variable  & we use await because it is asynchronous function  
         fullName,
         avatar: avatar.url,
         coverImage:coverImage?.url || "",
@@ -99,7 +101,7 @@ const registerUser = asyncHandler( async ( req, res) =>
 
 const loginUser = asyncHandler( async (req, res) => { 
     //req body -> data 
-    // username or emal 
+    // username or email 
     // find the user 
     // check if user exists
     // check if password is correct
@@ -134,9 +136,9 @@ const loginUser = asyncHandler( async (req, res) => {
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 // This is correct as both are exclusions.
 
-     const options = {
-        httpOnly: true, 
-        secure: true
+     const options = {  //Instead of repeating attributes for each cookie() call, you define them once in the options object, making the code DRY (Don't Repeat Yourself). // reusability adds also.
+        httpOnly: true, //This is a crucial security feature to mitigate cross-site scripting (XSS) attacks.
+        secure: true  //The secure attribute ensures the cookie is only sent over HTTPS, never over unencrypted HTTP connections.// This protects the cookie from being intercepted by attackers via man-in-the-middle (MITM) attacks on unencrypted connections.
      }
 
      return res
@@ -206,7 +208,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const refreshAccessToken = asyncHandler(async(req, res) => {
 const incomingRefreshToken = req.cookies.
-refreshToken || req.body.refreshToken
+refreshToken || req.body.refreshToken // last part  after || is for mobile users 
 
 if(!incomingRefreshToken){
     throw new ApiError(401, "unauthorized request")
@@ -261,7 +263,7 @@ const changeCurrentPassword = asyncHandler(async(req, res) => {
     if (!isPasswordCorrect) {
         throw new ApiError(400, "Invalid old password")
     }
-
+     
     user.password = newPassword
     await user.save({validateBeforeSave: false})
 
@@ -562,49 +564,49 @@ const getWatchHistory = asyncHandler(async(req,res) =>{
 })
  
 
-const addVideo = asyncHandler(async(req, res)=> {
-    const videoLocalPath = req.user?.path
-    if(!videoLocalPath){
-        throw new ApiError(400,"video  is missing")
-    }
+// const addVideo = asyncHandler(async(req, res)=> {
+//     const videoLocalPath = req.user?.path
+//     if(!videoLocalPath){
+//         throw new ApiError(400,"video  is missing")
+//     }
 
-    const video = await uploadOnCloudinary(videoLocalPath)
-    if(!video.url){
-        throw new AppiError(400, "ERROR: video isn't uploaded on cloudinary")
-    }
-    const user = await findByIdAndUpdate(
-        req.user?._id,
-        {
-            $set:{
-                videoFile: video.url
-            }
-        },
-       {new: true}
-    ).select("-password")
-    return res
-    .status(200)
-    .json(new ApiResponse(200, user, "video uploaded successfully"))
+//     const video = await uploadOnCloudinary(videoLocalPath)
+//     if(!video.url){
+//         throw new AppiError(400, "ERROR: video isn't uploaded on cloudinary")
+//     }
+//     const user = await findByIdAndUpdate(
+//         req.user?._id,
+//         {
+//             $set:{
+//                 videoFile: video.url
+//             }
+//         },
+//        {new: true}
+//     ).select("-password")
+//     return res
+//     .status(200)
+//     .json(new ApiResponse(200, user, "video uploaded successfully"))
 
-})
+// })
 
-const tweeter = asyncHandler(async(req,res)=>{
-    const tweet = await req.body
-    if(!tweet){
-        throw new ApiError(400, "tweet is not given")
-    }
-    const dbTweet = User.findByIdAndUpdate(
-        req.user?._id,
-        {
-            $set:{
-                tweet:dbTweet
-            }
-        },
-        {new:true}
-    ).select("-password")
-    return res
-    .status(200)
-    .json(new ApiResponse(200,dbTweet,"your tweet ha been tweeted successfuly"))
-}/*,{timestamps:true}*/)
+// const tweeter = asyncHandler(async(req,res)=>{
+//     const tweet = await req.body
+//     if(!tweet){
+//         throw new ApiError(400, "tweet is not given")
+//     }
+//     const dbTweet = User.findByIdAndUpdate(
+//         req.user?._id,
+//         {
+//             $set:{
+//                 tweet:dbTweet
+//             }
+//         },
+//         {new:true}
+//     ).select("-password")
+//     return res
+//     .status(200)
+//     .json(new ApiResponse(200,dbTweet,"your tweet ha been tweeted successfuly"))
+// }/*,{timestamps:true}*/)
 
 export { 
     registerUser,
