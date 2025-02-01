@@ -17,4 +17,4 @@ const likeSchema = new Schema({
         ref: "User"
     }
 })
- export const Like = mongooose.model("Like", likeSchema)
+ export const Like = mongoose.model("Like", likeSchema)

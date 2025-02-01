@@ -5,6 +5,7 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
+import {deleteFromCloudinary} from "../utils/cloudinary.js"
 
 
 const getAllVideos = asyncHandler(async(req, res)=> {
@@ -263,10 +264,34 @@ return res
 
 
 const togglePublished = asyncHandler(async(res, req)=> {
-    
-})
+    const videoId = req.params;
+
+    if(!isObjectIdValid(videoId)){
+        throw new ApiError(400,"video id is not valid");
+    }
+    const video = await Video.findById(videoId);
+if(video.owner!== req.user._id){
+throw new ApiError(403,"unauthorised request");
+}
+const togglePublished = await Video.findById(videoId,
+    {
+        $set:{
+            isPublished: !video.isPublished 
+        }
+    },
+    {
+        new: true
+    }
+)
+return res
+    .status(200)
+    .json(new ApiResponse(200,togglePublished,"togglePublished successfully"));
+});
 export{
     getAllVideos,
+    getVideoById,
     publishVideo,
     updateVideo,
+    togglePublished,
+    deleteVideo,
 }

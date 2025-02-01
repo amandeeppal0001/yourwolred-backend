@@ -620,7 +620,6 @@ export {
  updateUserCoverImage,
  getUserChannelProfile,
  getWatchHistory,
- addVideo,
- tweeter
+
 
  }
