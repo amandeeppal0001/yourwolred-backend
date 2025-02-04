@@ -2,7 +2,7 @@ import { ApiError } from "../utils/ApiError";
 import { asyncHandler } from "../utils/asyncHandler";
 import mongoose, {isValidObjectId} from "mongoose" ;
 import {Playlist} from "../models/playlist.model";
-import {Video} from "../models/playlist.model";
+import {Video} from "../models/video.model";
 import { ApiResponse } from "../utils/ApiResponse";
 
 const createPlaylist = asyncHandler(async(req, res) => {
@@ -334,7 +334,58 @@ return res
     .json(new ApiResponse(200, updatePlaylist, " playlist updated successfully"))
 });
 
+const removeVideoFromPlaylist  = asyncHandler(async(req, res)=> {
+       const {playlistId, videoId }= req.params;
+       if(!isObjectIdValid(playlistId)){
+        throw new ApiError(400, "playlistId is invlid");
+       }
 
+       if(!isObjectIdValid(videoId)){
+        throw new ApiError(400, "videoId is invlid");
+       }
+
+       const playlist = await Playlist.findById(playlistId)
+       if(!playlist ){
+        throw new ApiError(400, "playlist is required")
+       }
+    if( playlist.owner.toString() !== req.user._id){
+        throw new ApiError(403, "you are not allowded to delete playlist")
+    }
+    const videoExists = await playlist.videos.find((video) => 
+        video.toString() === videoId);
+    if(!videoExists){
+        throw new ApiError(400,"video deosn't exists")
+    }
+
+    const modifiedPlaylistVideos = await playlist.videos.filter(
+        (video)=> video.toString() !== videoId );
+
+
+        const removeVideo = await Playlist.findByIdAndUpdate(
+            playlistId,
+            {
+                $set: {
+                    video: modifiedPlaylistVideos,
+                },
+            },
+            {
+                new: true
+            },
+
+        );
+
+        if(!removeVideo){
+            throw new ApiError(500, " server error while removing video ")
+        }
+    
+    const deletePlaylist = await Playlist.findByIdAndDelete(playlist._id);
+    if(!deletePlaylist){
+        throw new ApiError(500, "server Error while deleting video")
+    }
+    return res
+    .status(200)
+    .json(new ApiResponse(200,removeVideo,"video deleted successfully" ));
+});
 
 export{
     createPlaylist,
@@ -343,4 +394,5 @@ export{
     addVideoToPlaylist,
     deletePlaylist,
     updatePlaylist,
+    removeVideoFromPlaylist ,
 }
