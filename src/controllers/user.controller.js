@@ -1,3 +1,4 @@
+// Mongoose, a library for interacting with MongoDB in Node.js.
 import { asyncHandler } from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/ApiError.js"
 import { User } from "../models/user.model.js"
@@ -5,7 +6,7 @@ import { uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { json } from "express";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
+import mongoose from "mongoose"; // Mongoose, a library for interacting with MongoDB in Node.js.
 import { upload } from "../middlewares/multer.middleware.js";
 
 //ToDo user controller- this had been already teached by sir ,video controller, tweet controller, hospital management controller, upload videos, add video to watchlist & history of user , if user hits subscribe than how add subcriber to channel(& which field is required like user_id)

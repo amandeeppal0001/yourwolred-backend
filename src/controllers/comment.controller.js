@@ -25,7 +25,7 @@ const comments = await Comment.aggregate([
         video: new mongoose.Types.ObjectId(videoId),
    },
 },
-   {
+   { 
     $lookup:{
         from:"users",
         localFeild: "owner",
@@ -80,7 +80,7 @@ return res
 // Add a comment to a video
 
 const addComment = asyncHandler(async(req, res) => {
-    const {videoId } = req.params;
+    const { videoId } = req.params;
     const { content }= req.body;
     const user = req.user._id;
     if(!content){
